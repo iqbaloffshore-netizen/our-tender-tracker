@@ -82,6 +82,9 @@ def format_tender_alert(category: str, results: list) -> str:
 def main():
     """Main execution function"""
     logging.info("Starting Wootz Tender Tracker...")
+
+    test_msg = "✅ *Wootz Tracker Connected!*\nGitHub Actions se Telegram connection successful hai."
+    send_telegram_message(test_msg)
     
     current_date = datetime.datetime.now().strftime("%d %B %Y")
     final_message = f"*📊 Wootz Solutions - Daily Tender Update*\n"
