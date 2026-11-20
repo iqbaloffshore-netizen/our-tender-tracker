@@ -27,30 +27,6 @@ SEARCH_QUERIES = {
     ]
 }
 
-def send_telegram_message(message: str) -> bool:
-    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
-        logging.error("Telegram credentials missing")
-        return False
-    
-    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
-    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
-    
-    try:
-        resp = requests.post(url, json=payload, timeout=10)
-        resp.raise_for_status()
-        return True
-    except Exception as e:
-        logging.error(f"Telegram error: {e}")
-        return False
-
-def search_tenders(query: str, max_results: int = 3) -> list:
-    try:
-        with DDGS() as ddgs:
-            return list(ddgs.text(query, max_results=max_results, timelimit='w'))
-    except Exception as e:
-        logging.error(f"Search failed: {e}")
-        return []
-
 def main():
     logging.info("Wootz Tender Tracker started...")
     date_str = datetime.datetime.now().strftime("%d %B %Y")
@@ -81,8 +57,9 @@ def main():
         logging.info(f"Sent {total} alerts")
     else:
         logging.info("No new tenders tonight")
-        # Optional: Uncomment next line if you want daily confirmation even when empty
-        # send_telegram_message(f"*📊 Wootz Night Scan*\n📅 {date_str}\nℹ️ No new relevant tenders tonight.")
 
+# 👇 YE WALA BLOCK SABSE NEECHE HONA CHAHIYE
 if __name__ == "__main__":
     main()
+    # Daily status message force karne ke liye ye line yahan honi chahiye
+    send_telegram_message("🤖 *Wootz Night Scan Complete*\nSystem successfully ran at 11:00 PM IST.")
