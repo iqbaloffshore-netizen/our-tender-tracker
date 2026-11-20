@@ -9,7 +9,6 @@ logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 TELEGRAM_CHAT_ID = os.environ.get("TELEGRAM_CHAT_ID")
 
-# SHARPENED QUERIES FOR WOOTZ SOLUTIONS
 SEARCH_QUERIES = {
     "🏛️ Govt Steel/Industrial": [
         "site:eprocure.gov.in steel structure OR fabrication OR industrial supply tender active",
@@ -27,6 +26,30 @@ SEARCH_QUERIES = {
     ]
 }
 
+def send_telegram_message(message: str) -> bool:
+    if not TELEGRAM_TOKEN or not TELEGRAM_CHAT_ID:
+        logging.error("Telegram credentials missing")
+        return False
+    
+    url = f"https://api.telegram.org/bot{TELEGRAM_TOKEN}/sendMessage"
+    payload = {"chat_id": TELEGRAM_CHAT_ID, "text": message, "parse_mode": "Markdown"}
+    
+    try:
+        resp = requests.post(url, json=payload, timeout=10)
+        resp.raise_for_status()
+        return True
+    except Exception as e:
+        logging.error(f"Telegram error: {e}")
+        return False
+
+def search_tenders(query: str, max_results: int = 3) -> list:
+    try:
+        with DDGS() as ddgs:
+            return list(ddgs.text(query, max_results=max_results, timelimit='w'))
+    except Exception as e:
+        logging.error(f"Search failed for '{query}': {e}")
+        return []
+
 def main():
     logging.info("Wootz Tender Tracker started...")
     date_str = datetime.datetime.now().strftime("%d %B %Y")
@@ -35,6 +58,7 @@ def main():
     seen_urls = set()
     total = 0
     
+    # Safe loop: agar ek query fail ho, toh agla continue hoga
     for category, queries in SEARCH_QUERIES.items():
         cat_alerts = []
         for q in queries:
@@ -51,15 +75,14 @@ def main():
                 msg += f"{i}. *{r['title']}*\n   🔗 {r['href']}\n\n"
             total += len(cat_alerts)
     
+    # Hamesha status message bhejo, chahe tender mile ya na mile
     if total > 0:
         msg += f"_✅ {total} unique tenders found_"
-        send_telegram_message(msg)
-        logging.info(f"Sent {total} alerts")
     else:
-        logging.info("No new tenders tonight")
+        msg += "_ℹ️ No new relevant tenders found tonight._"
+    
+    send_telegram_message(msg)
+    logging.info(f"Scan complete. Found {total} tenders.")
 
-# 👇 YE WALA BLOCK SABSE NEECHE HONA CHAHIYE
 if __name__ == "__main__":
     main()
-    # Daily status message force karne ke liye ye line yahan honi chahiye
-    send_telegram_message("🤖 *Wootz Night Scan Complete*\nSystem successfully ran at 11:00 PM IST.")
